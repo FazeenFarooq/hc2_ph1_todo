@@ -1,0 +1,17 @@
+[project]
+name = "todo_app"
+version = "0.1.0"
+description = "A simple CLI Todo application"
+authors = [
+    {name = "Developer", email = "developer@example.com"}
+]
+dependencies = []
+
+[project.scripts]
+todo_app = "src.cli.cli_interface:main"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
