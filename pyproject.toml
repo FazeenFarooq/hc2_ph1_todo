@@ -1,14 +1,22 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
+requires-python = ">=3.13"
 name = "todo_app"
 version = "0.1.0"
 description = "A simple CLI Todo application"
 authors = [
     {name = "Developer", email = "developer@example.com"}
 ]
-dependencies = []
+dependencies = [
+    "fastapi>=0.109.0",
+    "uvicorn>=0.27.0",
+]
 
 [project.scripts]
-todo_app = "src.cli.cli_interface:main"
+todo_app = "src.todo_app:main"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

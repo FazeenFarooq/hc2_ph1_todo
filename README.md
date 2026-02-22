@@ -83,3 +83,19 @@ This project adheres to the principles outlined in the [constitution](.specify/m
 - Minimalist implementation
 - Clean code standards
 - Python-native implementation
+
+
+ 1 # Add a todo
+      2 python src\todo_app.py add --title "Buy groceries" --description "Milk, bread, eggs"
+      3 
+      4 # List todos (will show your item now!)
+      5 python src\todo_app.py list
+      6 
+      7 # Mark complete
+      8 python src\todo_app.py complete --id 1
+      9 
+     10 # Update
+     11 python src\todo_app.py update --id 1 --title "New title"
+     12 
+     13 # Delete
+     14 python src\todo_app.py delete --id 1

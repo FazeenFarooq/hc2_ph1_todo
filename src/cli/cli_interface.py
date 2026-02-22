@@ -5,7 +5,6 @@ CLI interface handler for the Todo application.
 import argparse
 import sys
 import os
-import sys
 
 # Add the src directory to the path so we can import from sibling directories
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
@@ -135,16 +134,16 @@ Examples:
     def _handle_list(self):
         """Handle the 'list' command."""
         items = self.todo_service.list_items()
-        
+
         if not items:
             print("No todo items found.")
             return
-        
+
         print(f"{'ID':<4} {'Status':<8} {'Title':<30} {'Description'}")
         print("-" * 70)
-        
+
         for item in items:
-            status = "✓" if item.completed else "○"
+            status = "[X]" if item.completed else "[ ]"
             title = item.title[:27] + "..." if len(item.title) > 30 else item.title
             desc = item.description[:30] + "..." if len(item.description) > 30 else item.description
             print(f"{item.id:<4} {status:<8} {title:<30} {desc}")
