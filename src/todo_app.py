@@ -60,6 +60,13 @@ def main():
     cli_interface.run()
 
 
+def run_interactive():
+    """Run the interactive menu-based CLI."""
+    service = TodoService()
+    cli = CLIInterface(service)
+    cli.run()
+
+
 # FastAPI endpoints
 @app.get("/todos", response_model=List[TodoResponse], tags=["Todos"])
 def list_todos():
@@ -143,12 +150,18 @@ def mark_todo_incomplete(todo_id: int):
 
 
 if __name__ == "__main__":
-    import argparse
-    
-    # Check if --serve flag is present before any other parsing
-    if '--serve' in sys.argv:
-        import uvicorn
-        uvicorn.run(app, host="0.0.0.0", port=8000)
+    # Check for command line arguments
+    if len(sys.argv) > 1:
+        if sys.argv[1] == "--serve":
+            # Run as FastAPI server
+            import uvicorn
+            uvicorn.run(app, host="0.0.0.0", port=8000)
+        elif sys.argv[1] == "--menu":
+            # Run interactive menu mode
+            run_interactive()
+        else:
+            # Pass to CLI for backward compatibility with argparse commands
+            main()
     else:
-        # Run CLI mode - pass all arguments to the CLI parser
-        main()
+        # Default: run interactive menu mode
+        run_interactive()

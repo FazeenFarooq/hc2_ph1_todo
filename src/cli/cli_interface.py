@@ -2,7 +2,6 @@
 CLI interface handler for the Todo application.
 """
 
-import argparse
 import sys
 import os
 
@@ -16,197 +15,268 @@ class CLIInterface:
     """
     Handles command-line interface interactions for the Todo application.
     """
-    
+
     def __init__(self, todo_service):
         """
         Initialize the CLI interface with a TodoService instance.
-        
+
         Args:
             todo_service (TodoService): The service to handle todo operations
         """
         self.todo_service = todo_service
-        self.parser = self._create_parser()
-    
-    def _create_parser(self):
+
+    def _display_menu(self):
+        """Display the main menu options."""
+        print("\n" + "=" * 40)
+        print("       TODO APPLICATION MENU")
+        print("=" * 40)
+        print("1. Add Task")
+        print("2. Update Task")
+        print("3. Delete Task")
+        print("4. View Tasks")
+        print("5. Mark Task Complete")
+        print("6. Mark Task Incomplete")
+        print("7. Quit")
+        print("=" * 40)
+
+    def _get_valid_input(self, prompt, required=True, min_length=1):
         """
-        Create and configure the argument parser.
+        Get validated input from user.
         
+        Args:
+            prompt: The prompt to display
+            required: Whether input is required
+            min_length: Minimum length of input
+            
         Returns:
-            argparse.ArgumentParser: Configured argument parser
+            str: Validated user input
         """
-        parser = argparse.ArgumentParser(
-            prog='todo_app',
-            description='A simple CLI Todo application',
-            formatter_class=argparse.RawDescriptionHelpFormatter,
-            epilog="""
-Examples:
-  %(prog)s add --title "Buy groceries" --description "Milk, bread, eggs"
-  %(prog)s list
-  %(prog)s update --id 1 --title "Buy groceries and vegetables"
-  %(prog)s delete --id 1
-  %(prog)s complete --id 1
-  %(prog)s incomplete --id 1
-            """
-        )
-        
-        subparsers = parser.add_subparsers(dest='command', help='Available commands')
-        
-        # Add command
-        add_parser = subparsers.add_parser('add', help='Add a new todo item')
-        add_parser.add_argument('--title', required=True, help='Title of the todo item')
-        add_parser.add_argument('--description', required=False, default='', help='Description of the todo item')
-        
-        # List command
-        list_parser = subparsers.add_parser('list', help='List all todo items')
-        
-        # Update command
-        update_parser = subparsers.add_parser('update', help='Update an existing todo item')
-        update_parser.add_argument('--id', type=int, required=True, help='ID of the todo item to update')
-        update_parser.add_argument('--title', required=False, help='New title for the todo item')
-        update_parser.add_argument('--description', required=False, help='New description for the todo item')
-        
-        # Delete command
-        delete_parser = subparsers.add_parser('delete', help='Delete a todo item')
-        delete_parser.add_argument('--id', type=int, required=True, help='ID of the todo item to delete')
-        
-        # Complete command
-        complete_parser = subparsers.add_parser('complete', help='Mark a todo item as complete')
-        complete_parser.add_argument('--id', type=int, required=True, help='ID of the todo item to mark complete')
-        
-        # Incomplete command
-        incomplete_parser = subparsers.add_parser('incomplete', help='Mark a todo item as incomplete')
-        incomplete_parser.add_argument('--id', type=int, required=True, help='ID of the todo item to mark incomplete')
-        
-        return parser
-    
-    def run(self, args=None):
+        while True:
+            try:
+                user_input = input(prompt).strip()
+                if not user_input and required:
+                    print("This field is required. Please enter a value.")
+                    continue
+                if len(user_input) < min_length:
+                    print(f"Input must be at least {min_length} character(s).")
+                    continue
+                return user_input
+            except EOFError:
+                print("\nUse option 7 to quit.")
+                continue
+            except KeyboardInterrupt:
+                print("\n\nUse option 7 to quit.")
+                continue
+
+    def _get_valid_int(self, prompt, min_value=None, max_value=None):
         """
-        Run the CLI interface with the provided arguments.
+        Get a valid integer input from user.
         
         Args:
-            args (list, optional): Command-line arguments. Defaults to None (uses sys.argv).
+            prompt: The prompt to display
+            min_value: Minimum allowed value
+            max_value: Maximum allowed value
+            
+        Returns:
+            int: Validated integer
         """
-        if args is None:
-            args = sys.argv[1:]
-        
-        parsed_args = self.parser.parse_args(args)
-        
-        if not parsed_args.command:
-            self.parser.print_help()
-            return
+        while True:
+            try:
+                user_input = input(prompt).strip()
+                value = int(user_input)
+                
+                if min_value is not None and value < min_value:
+                    print(f"Value must be at least {min_value}.")
+                    continue
+                if max_value is not None and value > max_value:
+                    print(f"Value must be at most {max_value}.")
+                    continue
+                return value
+            except ValueError:
+                print("Please enter a valid number.")
+                continue
+            except EOFError:
+                print("\nUse option 7 to quit.")
+                continue
+            except KeyboardInterrupt:
+                print("\n\nUse option 7 to quit.")
+                continue
+
+    def _handle_add(self):
+        """Handle adding a new task."""
+        print("\n--- Add New Task ---")
+        title = self._get_valid_input("Enter task title: ")
+        description = self._get_valid_input("Enter task description (optional, press Enter to skip): ", required=False)
         
         try:
-            if parsed_args.command == 'add':
-                self._handle_add(parsed_args)
-            elif parsed_args.command == 'list':
-                self._handle_list()
-            elif parsed_args.command == 'update':
-                self._handle_update(parsed_args)
-            elif parsed_args.command == 'delete':
-                self._handle_delete(parsed_args)
-            elif parsed_args.command == 'complete':
-                self._handle_complete(parsed_args)
-            elif parsed_args.command == 'incomplete':
-                self._handle_incomplete(parsed_args)
-            else:
-                self.parser.print_help()
-        except TodoNotFoundException as e:
-            print(f"Error: {e}", file=sys.stderr)
-            sys.exit(1)
-        except Exception as e:
-            print(f"Unexpected error: {e}", file=sys.stderr)
-            sys.exit(1)
-    
-    def _handle_add(self, args):
-        """
-        Handle the 'add' command.
-        
-        Args:
-            args: Parsed arguments for the add command
-        """
-        try:
-            new_item = self.todo_service.add_item(args.title, args.description)
-            print(f"Added todo item with ID {new_item.id}")
+            new_item = self.todo_service.add_item(title, description)
+            print(f"\n[OK] Task added successfully with ID: {new_item.id}")
         except ValueError as e:
-            print(f"Error: {e}", file=sys.stderr)
-            sys.exit(1)
-    
-    def _handle_list(self):
-        """Handle the 'list' command."""
+            print(f"\n[ERROR] {e}")
+
+    def _handle_update(self):
+        """Handle updating an existing task."""
+        print("\n--- Update Task ---")
+        
         items = self.todo_service.list_items()
-
         if not items:
-            print("No todo items found.")
+            print("No tasks available to update.")
             return
+        
+        self._display_tasks()
+        
+        task_id = self._get_valid_int("Enter task ID to update: ", min_value=1)
+        
+        try:
+            item = self.todo_service.get_item(task_id)
+            print(f"\nCurrent task: {item.title}")
+            print(f"Current description: {item.description or '(none)'}")
+            print("\nEnter new values (press Enter to keep current):")
+            
+            new_title = self._get_valid_input(f"New title [{item.title}]: ", required=False)
+            new_description = self._get_valid_input("New description: ", required=False)
+            
+            # Use current values if new values are empty
+            title = new_title if new_title else item.title
+            description = new_description if new_description else item.description
+            
+            updated_item = self.todo_service.update_item(task_id, title=title, description=description)
+            print(f"\n[OK] Task ID {updated_item.id} updated successfully!")
+        except TodoNotFoundException:
+            print(f"\n[ERROR] Task with ID {task_id} not found.")
+        except ValueError as e:
+            print(f"\n[ERROR] {e}")
 
-        print(f"{'ID':<4} {'Status':<8} {'Title':<30} {'Description'}")
+    def _handle_delete(self):
+        """Handle deleting a task."""
+        print("\n--- Delete Task ---")
+        
+        items = self.todo_service.list_items()
+        if not items:
+            print("No tasks available to delete.")
+            return
+        
+        self._display_tasks()
+        
+        task_id = self._get_valid_int("Enter task ID to delete: ", min_value=1)
+        
+        try:
+            self.todo_service.delete_item(task_id)
+            print(f"\n[OK] Task ID {task_id} deleted successfully!")
+        except TodoNotFoundException:
+            print(f"\n[ERROR] Task with ID {task_id} not found.")
+
+    def _handle_view(self):
+        """Handle viewing all tasks."""
+        print("\n--- View Tasks ---")
+        
+        items = self.todo_service.list_items()
+        
+        if not items:
+            print("No tasks found. Add a task to get started!")
+            return
+        
+        self._display_tasks()
+        print(f"\nTotal: {len(items)} task(s)")
+
+    def _handle_complete(self):
+        """Handle marking a task as complete."""
+        print("\n--- Mark Task Complete ---")
+        
+        items = self.todo_service.list_items()
+        if not items:
+            print("No tasks available.")
+            return
+        
+        self._display_tasks()
+        
+        task_id = self._get_valid_int("Enter task ID to mark complete: ", min_value=1)
+        
+        try:
+            item = self.todo_service.mark_complete(task_id)
+            print(f"\n[OK] Task ID {item.id} marked as complete!")
+        except TodoNotFoundException:
+            print(f"\n[ERROR] Task with ID {task_id} not found.")
+
+    def _handle_incomplete(self):
+        """Handle marking a task as incomplete."""
+        print("\n--- Mark Task Incomplete ---")
+        
+        items = self.todo_service.list_items()
+        if not items:
+            print("No tasks available.")
+            return
+        
+        self._display_tasks()
+        
+        task_id = self._get_valid_int("Enter task ID to mark incomplete: ", min_value=1)
+        
+        try:
+            item = self.todo_service.mark_incomplete(task_id)
+            print(f"\n[OK] Task ID {item.id} marked as incomplete!")
+        except TodoNotFoundException:
+            print(f"\n[ERROR] Task with ID {task_id} not found.")
+
+    def _display_tasks(self):
+        """Display all tasks in a formatted list."""
+        items = self.todo_service.list_items()
+        
+        if not items:
+            print("No tasks found.")
+            return
+        
+        print(f"\n{'ID':<4} {'Status':<8} {'Title':<30} {'Description'}")
         print("-" * 70)
-
+        
         for item in items:
             status = "[X]" if item.completed else "[ ]"
             title = item.title[:27] + "..." if len(item.title) > 30 else item.title
-            desc = item.description[:30] + "..." if len(item.description) > 30 else item.description
+            desc = (item.description[:30] + "...") if len(item.description) > 30 else (item.description or "-")
             print(f"{item.id:<4} {status:<8} {title:<30} {desc}")
-    
-    def _handle_update(self, args):
+
+    def run(self):
         """
-        Handle the 'update' command.
+        Run the interactive CLI interface.
+        Displays menu repeatedly until user chooses to quit.
+        """
+        print("\n" + "=" * 40)
+        print("  Welcome to Todo Application!")
+        print("=" * 40)
         
-        Args:
-            args: Parsed arguments for the update command
-        """
-        try:
-            updated_item = self.todo_service.update_item(
-                args.id,
-                title=args.title,
-                description=args.description
-            )
-            print(f"Updated todo item with ID {updated_item.id}")
-        except ValueError as e:
-            print(f"Error: {e}", file=sys.stderr)
-            sys.exit(1)
-    
-    def _handle_delete(self, args):
-        """
-        Handle the 'delete' command.
-        
-        Args:
-            args: Parsed arguments for the delete command
-        """
-        try:
-            self.todo_service.delete_item(args.id)
-            print(f"Deleted todo item with ID {args.id}")
-        except TodoNotFoundException as e:
-            print(f"Error: {e}", file=sys.stderr)
-            sys.exit(1)
-    
-    def _handle_complete(self, args):
-        """
-        Handle the 'complete' command.
-        
-        Args:
-            args: Parsed arguments for the complete command
-        """
-        try:
-            item = self.todo_service.mark_complete(args.id)
-            print(f"Marked todo item with ID {item.id} as complete")
-        except TodoNotFoundException as e:
-            print(f"Error: {e}", file=sys.stderr)
-            sys.exit(1)
-    
-    def _handle_incomplete(self, args):
-        """
-        Handle the 'incomplete' command.
-        
-        Args:
-            args: Parsed arguments for the incomplete command
-        """
-        try:
-            item = self.todo_service.mark_incomplete(args.id)
-            print(f"Marked todo item with ID {item.id} as incomplete")
-        except TodoNotFoundException as e:
-            print(f"Error: {e}", file=sys.stderr)
-            sys.exit(1)
+        while True:
+            self._display_menu()
+            
+            try:
+                choice = self._get_valid_int("Enter your choice (1-7): ", min_value=1, max_value=7)
+                
+                if choice == 1:
+                    self._handle_add()
+                elif choice == 2:
+                    self._handle_update()
+                elif choice == 3:
+                    self._handle_delete()
+                elif choice == 4:
+                    self._handle_view()
+                elif choice == 5:
+                    self._handle_complete()
+                elif choice == 6:
+                    self._handle_incomplete()
+                elif choice == 7:
+                    print("\n" + "=" * 40)
+                    print("  Thank you for using Todo Application!")
+                    print("  Goodbye!")
+                    print("=" * 40)
+                    break
+                else:
+                    print("\n[ERROR] Invalid choice. Please enter a number between 1 and 7.")
+                    
+            except KeyboardInterrupt:
+                print("\n\n[WARNING] Interrupted! Use option 7 to quit properly.")
+                continue
+            except Exception as e:
+                print(f"\n[ERROR] An unexpected error occurred: {e}")
+                print("Please try again.")
+                continue
 
 
 def main():
